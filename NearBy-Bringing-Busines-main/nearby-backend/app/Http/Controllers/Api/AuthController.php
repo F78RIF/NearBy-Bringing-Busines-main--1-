@@ -82,6 +82,57 @@ class AuthController extends Controller
     }
 
     /**
+     * List the user's active sessions (Sanctum tokens).
+     *
+     * Catatan: device & lokasi tidak tersedia karena tidak disimpan saat login
+     * (butuh kolom baru di `personal_access_tokens`). Yang tersedia: nama token,
+     * waktu dibuat, dan terakhir dipakai.
+     */
+    public function sessions(Request $request)
+    {
+        $currentId = $request->user()->currentAccessToken()->id;
+
+        $sessions = $request->user()->tokens()
+            ->latest()
+            ->get()
+            ->map(fn ($token) => [
+                'id' => $token->id,
+                'name' => $token->name,
+                'current' => $token->id === $currentId,
+                'lastUsed' => $token->last_used_at?->diffForHumans(),
+                'createdAt' => $token->created_at?->translatedFormat('j M Y H:i'),
+            ]);
+
+        return response()->json(['sessions' => $sessions]);
+    }
+
+    /** Revoke a specific session/token belonging to the user. */
+    public function revokeSession(Request $request, int $tokenId)
+    {
+        $deleted = $request->user()->tokens()->where('id', $tokenId)->delete();
+
+        abort_unless($deleted, 404, 'Sesi tidak ditemukan.');
+
+        return response()->json(['message' => 'Sesi dihentikan.']);
+    }
+
+    /**
+     * Soft-delete the authenticated user's own account and revoke its tokens.
+     *
+     * Catatan: pemulihan oleh user sendiri tidak mungkin setelah akun terhapus
+     * (tak bisa login). Restore tetap tersedia lewat admin (`/admin/trash`).
+     * "Window 30 hari" perlu penjadwalan pembersihan tersendiri (belum ada).
+     */
+    public function destroyAccount(Request $request)
+    {
+        $user = $request->user();
+        $user->tokens()->delete();
+        $user->delete();
+
+        return response()->json(['message' => 'Akun dihapus. Dapat dipulihkan admin dalam masa tenggang.']);
+    }
+
+    /**
      * Update the authenticated user's profile (name, email, phone).
      *
      * Catatan: foto profil TIDAK disimpan karena belum ada kolom di tabel `users`.

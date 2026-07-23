@@ -5,7 +5,9 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\OwnerController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\SubmissionController;
 use App\Http\Controllers\Api\UmkmController;
+use App\Http\Controllers\Api\UmkmItemController;
 use App\Http\Controllers\Api\UploadController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,7 +39,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/me', [AuthController::class, 'updateProfile']);
+    Route::delete('/me', [AuthController::class, 'destroyAccount']);
     Route::put('/password', [AuthController::class, 'changePassword']);
+
+    // Manajemen sesi aktif
+    Route::get('/sessions', [AuthController::class, 'sessions']);
+    Route::delete('/sessions/{tokenId}', [AuthController::class, 'revokeSession']);
 
     // Layanan upload terpusat (foto UMKM/menu/profil, dokumen, media review)
     Route::post('/uploads', [UploadController::class, 'store']);
@@ -47,8 +54,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/umkm/{umkm}', [UmkmController::class, 'update']);
     Route::delete('/umkm/{umkm}', [UmkmController::class, 'destroy']);
 
+    // Menu / produk per UMKM (CRUD terpisah, owner)
+    Route::post('/umkm/{umkm}/items', [UmkmItemController::class, 'store']);
+    Route::put('/items/{item}', [UmkmItemController::class, 'update']);
+    Route::delete('/items/{item}', [UmkmItemController::class, 'destroy']);
+
+    // Berkas legalitas untuk pengajuan verifikasi (owner)
+    Route::post('/submissions/{submission}/files', [SubmissionController::class, 'attachFile']);
+
     // Reviews
+    Route::get('/me/reviews', [ReviewController::class, 'mine']);
     Route::post('/umkm/{umkm}/reviews', [ReviewController::class, 'store']);
+    Route::put('/reviews/{review}', [ReviewController::class, 'update']);
+    Route::delete('/reviews/{review}', [ReviewController::class, 'destroy']);
     Route::post('/reviews/{review}/reply', [ReviewController::class, 'reply']);
 
     // Favorites
@@ -65,6 +83,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Admin dashboard (role: admin)
     Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('/users', [AdminController::class, 'users']);
+        Route::put('/users/{user}', [AdminController::class, 'updateUser']);
+        Route::post('/users/{user}/reset-password', [AdminController::class, 'resetUserPassword']);
         Route::get('/umkm', [AdminController::class, 'umkms']);
         Route::get('/submissions', [AdminController::class, 'submissions']);
         Route::post('/submissions/{submission}/approve', [AdminController::class, 'approve']);

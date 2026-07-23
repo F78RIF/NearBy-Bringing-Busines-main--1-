@@ -11,6 +11,8 @@ use App\Models\Submission;
 use App\Models\Umkm;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AdminController extends Controller
 {
@@ -18,6 +20,37 @@ class AdminController extends Controller
     public function users()
     {
         return UserResource::collection(User::orderBy('name')->get());
+    }
+
+    /** Activate / deactivate a user account (change status). */
+    public function updateUser(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'status' => ['required', Rule::in(['aktif', 'menunggu', 'nonaktif'])],
+        ]);
+
+        $user->update(['status' => $data['status']]);
+
+        return new UserResource($user->fresh());
+    }
+
+    /**
+     * Admin-triggered password reset. If no password is supplied a random one
+     * is generated and returned once so the admin can relay it to the user.
+     */
+    public function resetUserPassword(Request $request, User $user)
+    {
+        $data = $request->validate([
+            'password' => ['nullable', 'string', 'min:6'],
+        ]);
+
+        $newPassword = $data['password'] ?? Str::password(10);
+        $user->update(['password' => $newPassword]); // cast 'hashed' meng-hash otomatis
+
+        return response()->json([
+            'message' => 'Kata sandi pengguna berhasil direset.',
+            'password' => $newPassword,
+        ]);
     }
 
     /** All UMKM (including pending verification). */
@@ -49,10 +82,25 @@ class AdminController extends Controller
         return new SubmissionResource($submission->fresh('owner'));
     }
 
-    /** Reject a submission. */
-    public function reject(Submission $submission)
+    /** Reject a submission, optionally recording a reason. */
+    public function reject(Request $request, Submission $submission)
     {
-        $submission->update(['status' => 'ditolak']);
+        $data = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $submission->status = 'ditolak';
+
+        // Belum ada kolom khusus alasan di tabel `submissions`, jadi alasan
+        // disimpan sebagai satu baris pada JSON `checks` yang sudah ada
+        // (bentuk [label, bool] tetap terjaga agar frontend tidak rusak).
+        if (! empty($data['reason'])) {
+            $checks = $submission->checks ?? [];
+            $checks[] = ['Alasan ditolak: '.$data['reason'], false];
+            $submission->checks = $checks;
+        }
+
+        $submission->save();
 
         if ($submission->umkm) {
             $submission->umkm->update(['verification' => 'ditolak']);
