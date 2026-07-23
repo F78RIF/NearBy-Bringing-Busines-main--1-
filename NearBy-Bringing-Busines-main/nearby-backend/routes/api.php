@@ -1,0 +1,76 @@
+<?php
+
+use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\FavoriteController;
+use App\Http\Controllers\Api\OwnerController;
+use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\UmkmController;
+use App\Http\Controllers\Api\UploadController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Auth
+|--------------------------------------------------------------------------
+*/
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+/*
+|--------------------------------------------------------------------------
+| UMKM (public read)
+|--------------------------------------------------------------------------
+*/
+Route::get('/umkm', [UmkmController::class, 'index']);
+Route::get('/umkm/{umkm}', [UmkmController::class, 'show']);
+Route::get('/umkm/{umkm}/reviews', [ReviewController::class, 'index']);
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated (Sanctum token)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+    Route::put('/me', [AuthController::class, 'updateProfile']);
+    Route::put('/password', [AuthController::class, 'changePassword']);
+
+    // Layanan upload terpusat (foto UMKM/menu/profil, dokumen, media review)
+    Route::post('/uploads', [UploadController::class, 'store']);
+
+    // UMKM write (owner)
+    Route::post('/umkm', [UmkmController::class, 'store']);
+    Route::put('/umkm/{umkm}', [UmkmController::class, 'update']);
+    Route::delete('/umkm/{umkm}', [UmkmController::class, 'destroy']);
+
+    // Reviews
+    Route::post('/umkm/{umkm}/reviews', [ReviewController::class, 'store']);
+    Route::post('/reviews/{review}/reply', [ReviewController::class, 'reply']);
+
+    // Favorites
+    Route::get('/favorites', [FavoriteController::class, 'index']);
+    Route::post('/umkm/{umkm}/favorite', [FavoriteController::class, 'toggle']);
+
+    // Owner dashboard
+    Route::prefix('owner')->group(function () {
+        Route::get('/summary', [OwnerController::class, 'summary']);
+        Route::get('/umkm', [OwnerController::class, 'umkms']);
+        Route::get('/reviews', [OwnerController::class, 'reviews']);
+    });
+
+    // Admin dashboard (role: admin)
+    Route::prefix('admin')->middleware('admin')->group(function () {
+        Route::get('/users', [AdminController::class, 'users']);
+        Route::get('/umkm', [AdminController::class, 'umkms']);
+        Route::get('/submissions', [AdminController::class, 'submissions']);
+        Route::post('/submissions/{submission}/approve', [AdminController::class, 'approve']);
+        Route::post('/submissions/{submission}/reject', [AdminController::class, 'reject']);
+        Route::get('/reports', [AdminController::class, 'reports']);
+        Route::get('/trash', [AdminController::class, 'trash']);
+        Route::post('/trash/{id}/restore', [AdminController::class, 'restore']);
+    });
+});
