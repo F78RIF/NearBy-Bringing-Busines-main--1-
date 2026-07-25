@@ -21,6 +21,7 @@ const adminMenu = computed(() => [
   { key: 'users', label: 'Pengguna' },
   { key: 'report', label: 'Laporan' },
   { key: 'masalah', label: dashboard.newReportCount ? `Laporan Masalah (${dashboard.newReportCount})` : 'Laporan Masalah' },
+  { key: 'konten', label: 'Konten Video' },
 ])
 const ownerMenu = computed(() => [
   { key: 'ringkasan', label: 'Ringkasan' },

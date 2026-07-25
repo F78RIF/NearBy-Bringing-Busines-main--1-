@@ -60,6 +60,7 @@ class UmkmItemController extends Controller
 
         return $request->validate([
             'name' => [$req, 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:255'],
             'price' => ['nullable', 'string', 'max:255'],
             'img' => ['nullable', 'string', 'max:255'],
             'available' => ['nullable', 'boolean'],

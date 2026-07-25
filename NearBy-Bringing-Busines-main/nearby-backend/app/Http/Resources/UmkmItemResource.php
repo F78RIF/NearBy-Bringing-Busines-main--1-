@@ -17,6 +17,7 @@ class UmkmItemResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'category' => $this->category,
             'price' => $this->price,
             'img' => $this->img,
             'avail' => (bool) $this->available,

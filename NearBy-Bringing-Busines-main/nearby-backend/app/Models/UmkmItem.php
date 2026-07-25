@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['umkm_id', 'name', 'price', 'img', 'available'])]
+#[Fillable(['umkm_id', 'name', 'category', 'price', 'img', 'available'])]
 class UmkmItem extends Model
 {
     protected function casts(): array

@@ -140,6 +140,7 @@ class UmkmController extends Controller
             'status' => ['sometimes', Rule::in(['aktif', 'libur', 'tutup'])],
             'items' => ['sometimes', 'array'],
             'items.*.name' => ['required_with:items', 'string', 'max:255'],
+            'items.*.category' => ['nullable', 'string', 'max:255'],
             'items.*.price' => ['nullable', 'string', 'max:255'],
             'items.*.img' => ['nullable', 'string', 'max:255'],
             'items.*.available' => ['nullable', 'boolean'],
@@ -155,6 +156,7 @@ class UmkmController extends Controller
         foreach ($items as $item) {
             $umkm->items()->create([
                 'name' => $item['name'],
+                'category' => $item['category'] ?? null,
                 'price' => $item['price'] ?? null,
                 'img' => $item['img'] ?? null,
                 'available' => $item['available'] ?? true,

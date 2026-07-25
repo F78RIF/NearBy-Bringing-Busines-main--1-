@@ -40,10 +40,10 @@ export const UMKM_SEED: Umkm[] = [
     ig: '@kopi.saluang',
     listLabel: 'Menu andalan',
     items: [
-      { name: 'Kopi Susu Saluang', price: 'Rp22rb' },
-      { name: 'Robusta Tubruk', price: 'Rp15rb' },
-      { name: 'Aren Latte', price: 'Rp26rb' },
-      { name: 'Roti Bakar Srikaya', price: 'Rp18rb' },
+      { name: 'Kopi Susu Saluang', price: 'Rp22rb', category: 'Minuman' },
+      { name: 'Robusta Tubruk', price: 'Rp15rb', category: 'Minuman' },
+      { name: 'Aren Latte', price: 'Rp26rb', category: 'Minuman' },
+      { name: 'Roti Bakar Srikaya', price: 'Rp18rb', category: 'Makanan Basah' },
     ],
   },
   {
@@ -84,9 +84,9 @@ export const UMKM_SEED: Umkm[] = [
     ig: '@amplang.bahari',
     listLabel: 'Produk',
     items: [
-      { name: 'Amplang Tenggiri 250gr', price: 'Rp35rb' },
-      { name: 'Amplang Pedas 250gr', price: 'Rp38rb' },
-      { name: 'Kerupuk Kuku Macan', price: 'Rp25rb' },
+      { name: 'Amplang Tenggiri 250gr', price: 'Rp35rb', category: 'Makanan Kering' },
+      { name: 'Amplang Pedas 250gr', price: 'Rp38rb', category: 'Makanan Kering' },
+      { name: 'Kerupuk Kuku Macan', price: 'Rp25rb', category: 'Makanan Kering' },
       { name: 'Paket Oleh-oleh', price: 'Rp60rb' },
     ],
   },

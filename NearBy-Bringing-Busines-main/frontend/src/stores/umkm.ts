@@ -69,6 +69,39 @@ export const useUmkmStore = defineStore('umkm', () => {
   )
   const favCount = computed(() => favorites.value.length)
 
+  /**
+   * "Rekomendasi untuk kamu" — mencerminkan endpoint backend /recommendations.
+   * Basis: kategori UMKM yang difavoritkan user (paling sering dulu),
+   * fallback ke UMKM rating tertinggi bila belum ada favorit.
+   */
+  const RECOMMENDATION_LIMIT = 4
+
+  const recommendedByInterest = computed(() => favCount.value > 0)
+
+  const recommendations = computed<EnrichedUmkm[]>(() => {
+    const notFavorited = enrichedAll.value.filter((u) => !favorites.value.includes(u.id))
+
+    // Kategori favorit, diurut dari yang paling sering.
+    const catFreq = new Map<string, number>()
+    for (const u of favList.value) catFreq.set(u.cat, (catFreq.get(u.cat) ?? 0) + 1)
+    const preferredCats = [...catFreq.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c)
+
+    const byRating = (a: EnrichedUmkm, b: EnrichedUmkm) => b.rating - a.rating
+    const result: EnrichedUmkm[] = []
+
+    if (preferredCats.length) {
+      result.push(...notFavorited.filter((u) => preferredCats.includes(u.cat)).sort(byRating))
+    }
+
+    // Lengkapi kekurangan dengan UMKM populer (rating tertinggi).
+    if (result.length < RECOMMENDATION_LIMIT) {
+      const chosen = new Set(result.map((u) => u.id))
+      result.push(...notFavorited.filter((u) => !chosen.has(u.id)).sort(byRating))
+    }
+
+    return result.slice(0, RECOMMENDATION_LIMIT)
+  })
+
   function isFavorite(id: number) {
     return favorites.value.includes(id)
   }
@@ -107,6 +140,8 @@ export const useUmkmStore = defineStore('umkm', () => {
     favorites,
     favList,
     favCount,
+    recommendations,
+    recommendedByInterest,
     isFavorite,
     toggleFavorite,
     cat,

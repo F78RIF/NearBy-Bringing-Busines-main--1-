@@ -17,6 +17,8 @@ export interface CategoryStyle {
 
 export interface UmkmItem {
   name: string
+  /** Sub-katalog produk, mis. "Makanan Kering". Kosong = "Lainnya". */
+  category?: string
   price: string
   img?: string
   avail?: boolean
@@ -50,6 +52,18 @@ export interface Review {
   stars: number
   date: string
   text: string
+}
+
+// ---- Konten video medsos (embed) ----
+
+export type VideoPlatform = 'youtube' | 'instagram'
+
+export interface SocialVideo {
+  id: string
+  platform: VideoPlatform
+  /** Link asli dari platform (mis. URL Reels / YouTube). Diparse jadi URL embed. */
+  url: string
+  title: string
 }
 
 export type Role = 'user' | 'owner' | 'admin'

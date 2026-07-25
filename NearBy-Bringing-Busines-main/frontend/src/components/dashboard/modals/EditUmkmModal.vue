@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
 import { useUiStore } from '@/stores/ui'
-import { CATEGORY_NAMES, LOCATION_NAMES } from '@/data/categories'
+import { CATEGORY_NAMES, LOCATION_NAMES, PRODUCT_SUBCATEGORIES } from '@/data/categories'
 import BaseModal from '@/components/shared/BaseModal.vue'
 
 const ui = useUiStore()
@@ -15,6 +15,7 @@ interface DraftPhoto {
 }
 interface DraftMenuItem {
   name: string
+  category: string
   price: string
   img: string
   avail: boolean
@@ -36,7 +37,7 @@ const draft = reactive({
   hours: '',
   desc: '',
   photos: BLANK_PHOTOS(),
-  menu: [{ name: '', price: '', img: '', avail: true }] as DraftMenuItem[],
+  menu: [{ name: '', category: '', price: '', img: '', avail: true }] as DraftMenuItem[],
 })
 
 watch(
@@ -52,12 +53,15 @@ watch(
       draft.hours = item.hours || ''
       draft.desc = item.tag || ''
       draft.photos = BLANK_PHOTOS()
-      draft.menu = (item.items ?? []).map((it: { name: string; price: string; img?: string; avail?: boolean }) => ({
-        name: it.name,
-        price: it.price,
-        img: it.img || '',
-        avail: it.avail !== false,
-      }))
+      draft.menu = (item.items ?? []).map(
+        (it: { name: string; category?: string; price: string; img?: string; avail?: boolean }) => ({
+          name: it.name,
+          category: it.category || '',
+          price: it.price,
+          img: it.img || '',
+          avail: it.avail !== false,
+        }),
+      )
     } else {
       draft.name = ''
       draft.cat = CATEGORY_NAMES[0]
@@ -68,7 +72,7 @@ watch(
       draft.hours = ''
       draft.desc = ''
       draft.photos = BLANK_PHOTOS()
-      draft.menu = [{ name: '', price: '', img: '', avail: true }]
+      draft.menu = [{ name: '', category: '', price: '', img: '', avail: true }]
     }
   },
   { immediate: true },
@@ -97,7 +101,7 @@ function clearPhoto(i: number) {
 }
 
 function addMenuRow() {
-  draft.menu.push({ name: '', price: '', img: '', avail: true })
+  draft.menu.push({ name: '', category: '', price: '', img: '', avail: true })
 }
 function removeMenuRow(i: number) {
   draft.menu.splice(i, 1)
@@ -206,7 +210,7 @@ function saveUmkm() {
         <textarea v-model="draft.desc" class="mb-4 min-h-20 w-full resize-y rounded-xl border border-border-input bg-white px-3.5 py-2.5" />
 
         <div class="mb-2.5 flex items-center justify-between">
-          <label class="text-[13px] font-bold">Menu / produk &amp; harga <span class="font-semibold text-text-faint">· klik kotak foto untuk tambah gambar</span></label>
+          <label class="text-[13px] font-bold">Menu / produk &amp; harga <span class="font-semibold text-text-faint">· pilih sub-kategori tiap produk, klik kotak foto untuk gambar</span></label>
           <button type="button" class="rounded-[9px] bg-brand-blue-tint px-[13px] py-1.5 text-[12.5px] font-bold text-brand-blue" @click="addMenuRow">
             + Tambah
           </button>
@@ -225,6 +229,14 @@ function saveUmkm() {
               <input type="file" accept="image/*" class="hidden" @change="onMenuFile(i, $event)" />
             </label>
             <input v-model="m.name" placeholder="Nama menu / produk" class="min-w-0 flex-1 rounded-[10px] border border-border-input bg-white px-3 py-2.5" />
+            <select
+              v-model="m.category"
+              title="Sub-kategori produk"
+              class="w-[130px] flex-none rounded-[10px] border border-border-input bg-white px-2.5 py-2.5 text-[13px] font-semibold text-brand-navy"
+            >
+              <option value="">Tanpa kategori</option>
+              <option v-for="c in PRODUCT_SUBCATEGORIES" :key="c" :value="c">{{ c }}</option>
+            </select>
             <input v-model="m.price" placeholder="Harga" class="w-24 flex-none rounded-[10px] border border-border-input bg-white px-3 py-2.5" />
             <button
               type="button"

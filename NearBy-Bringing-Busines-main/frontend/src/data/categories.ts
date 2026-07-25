@@ -24,6 +24,23 @@ export const CATEGORY_NAMES: CategoryName[] = [
 /** Filter chip order used on the Daftar UMKM page (includes "Semua"). */
 export const CATEGORY_FILTERS: string[] = ['Semua', ...CATEGORY_NAMES]
 
+/**
+ * Sub-katalog produk generik (per item, di dalam satu UMKM). Dipakai untuk
+ * mengelompokkan menu/produk pada halaman detail & saat owner tambah/edit produk.
+ * Bisa disesuaikan admin/owner nanti. Item tanpa kategori masuk ke "Lainnya".
+ */
+export const PRODUCT_SUBCATEGORIES: string[] = [
+  'Makanan Basah',
+  'Makanan Kering',
+  'Minuman',
+  'Kerajinan Tangan',
+  'Fashion & Aksesoris',
+  'Lainnya',
+]
+
+/** Label default untuk item yang belum diberi sub-kategori. */
+export const DEFAULT_SUBCATEGORY = 'Lainnya'
+
 /** Canonical kecamatan order used in filters, register/edit-UMKM selects. */
 export const LOCATION_NAMES: LocationName[] = [
   'Balikpapan Kota',

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\OwnerController;
+use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SubmissionController;
 use App\Http\Controllers\Api\UmkmController;
@@ -72,6 +73,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Favorites
     Route::get('/favorites', [FavoriteController::class, 'index']);
     Route::post('/umkm/{umkm}/favorite', [FavoriteController::class, 'toggle']);
+
+    // Rekomendasi UMKM berdasarkan minat user (favorit), fallback: populer
+    Route::get('/recommendations', [RecommendationController::class, 'index']);
 
     // Owner dashboard
     Route::prefix('owner')->group(function () {
