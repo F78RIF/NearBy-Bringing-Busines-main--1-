@@ -117,6 +117,26 @@ export interface MyUmkmRaw {
   reviews: number
   views: string
   status: UmkmStatus
+  /**
+   * Status verifikasi admin — beda dengan `status` (buka/libur/tutup).
+   * UMKM baru selalu 'Menunggu' sampai admin menyetujui di /dashboard/verif.
+   * Padanan kolom `umkms.verification` di backend.
+   */
+  verification?: 'Menunggu' | 'Disetujui'
+}
+
+/** Isi form "Tambah UMKM" (EditUmkmModal) yang dikirim ke dashboard store. */
+export interface UmkmDraft {
+  name: string
+  cat: CategoryName
+  loc: LocationName
+  wa: string
+  ig: string
+  address: string
+  hours: string
+  desc: string
+  photos: { name: string; img: string }[]
+  menu: { name: string; category: string; price: string; img: string; avail: boolean }[]
 }
 
 export interface OwnerReview {

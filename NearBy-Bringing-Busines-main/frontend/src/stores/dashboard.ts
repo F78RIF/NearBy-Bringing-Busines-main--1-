@@ -2,9 +2,18 @@ import { computed, reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { useUmkmStore } from './umkm'
 import { useAccountStore } from './account'
+import { useAuthStore } from './auth'
 import { CAT } from '@/data/categories'
 import { MY_UMKM_RAW, SUBMISSIONS_RAW, USERS_RAW, PROBLEM_REPORTS_RAW } from '@/data/dashboardSeed'
-import type { OwnerTrashEntry, ProblemReport, ProblemReportStatus, UmkmStatus } from '@/types'
+import type {
+  MyUmkmRaw,
+  OwnerTrashEntry,
+  ProblemReport,
+  ProblemReportStatus,
+  SubmissionRaw,
+  UmkmDraft,
+  UmkmStatus,
+} from '@/types'
 
 const STATUS_META: Record<UmkmStatus, { c: string; b: string }> = {
   Aktif: { c: '#2E7D6E', b: '#E3EFED' },
@@ -15,13 +24,21 @@ const STATUS_META: Record<UmkmStatus, { c: string; b: string }> = {
 export const useDashboardStore = defineStore('dashboard', () => {
   const umkm = useUmkmStore()
   const account = useAccountStore()
+  const auth = useAuthStore()
 
   // ---- Owner: UMKM Saya / Ringkasan ----
   const deletedMyUmkm = ref<string[]>([])
   const ownerTrash = ref<OwnerTrashEntry[]>([])
 
+  /**
+   * Salinan seed yang bisa ditulis. Sebelumnya `myUmkm` membaca MY_UMKM_RAW
+   * (array modul statis) langsung, jadi UMKM baru tidak punya tempat untuk
+   * disimpan sama sekali.
+   */
+  const myUmkmRaw = ref<MyUmkmRaw[]>([...MY_UMKM_RAW])
+
   const myUmkm = computed(() =>
-    MY_UMKM_RAW.filter((u) => !deletedMyUmkm.value.includes(u.name)).map((u) => {
+    myUmkmRaw.value.filter((u) => !deletedMyUmkm.value.includes(u.name)).map((u) => {
       const status = umkm.statusOf(u.name)
       const sm = STATUS_META[status]
       return {
@@ -163,30 +180,108 @@ export const useDashboardStore = defineStore('dashboard', () => {
       .map((u, i) => ({ ...u, rank: i + 1 })),
   )
 
-  const pendingSubmissions = SUBMISSIONS_RAW.map((sub) => {
-    const okCount = sub.checks.filter((c) => c[1]).length
-    const total = sub.checks.length
-    const complete = okCount === total
-    const minor = okCount >= total - 2
-    return {
-      ...sub,
-      checks: sub.checks.map(([label, ok]) => ({
-        label,
-        mark: ok ? '✓' : '✕',
-        color: ok ? '#2E7D6E' : '#C0472F',
-        bg: ok ? '#E3EFED' : '#F8E6E0',
-      })),
-      okCount,
-      total,
-      pct: Math.round((okCount / total) * 100),
-      barColor: complete ? '#3E8E82' : minor ? '#C98A2E' : '#C0472F',
-      verdict: complete ? 'Data lengkap' : minor ? 'Kurang lengkap' : 'Data belum memadai',
-      verdictColor: complete ? '#2E7D6E' : minor ? '#B07A1E' : '#C0472F',
-      verdictBg: complete ? '#E3EFED' : minor ? '#F7EDDC' : '#F8E6E0',
-      catAccent: CAT[sub.cat].accent,
-      catSoft: CAT[sub.cat].soft,
+  /**
+   * Antrian verifikasi. Sumbernya `ref` dan turunannya `computed` — sebelumnya
+   * ini konstanta biasa (`SUBMISSIONS_RAW.map(...)`) yang dihitung sekali saat
+   * store dibuat, sehingga pengajuan baru mustahil muncul walaupun datanya ada.
+   */
+  const submissionsRaw = ref<SubmissionRaw[]>([...SUBMISSIONS_RAW])
+
+  const pendingSubmissions = computed(() =>
+    submissionsRaw.value.map((sub) => {
+      const okCount = sub.checks.filter((c) => c[1]).length
+      const total = sub.checks.length
+      const complete = okCount === total
+      const minor = okCount >= total - 2
+      return {
+        ...sub,
+        checks: sub.checks.map(([label, ok]) => ({
+          label,
+          mark: ok ? '✓' : '✕',
+          color: ok ? '#2E7D6E' : '#C0472F',
+          bg: ok ? '#E3EFED' : '#F8E6E0',
+        })),
+        okCount,
+        total,
+        pct: Math.round((okCount / total) * 100),
+        barColor: complete ? '#3E8E82' : minor ? '#C98A2E' : '#C0472F',
+        verdict: complete ? 'Data lengkap' : minor ? 'Kurang lengkap' : 'Data belum memadai',
+        verdictColor: complete ? '#2E7D6E' : minor ? '#B07A1E' : '#C0472F',
+        verdictBg: complete ? '#E3EFED' : minor ? '#F7EDDC' : '#F8E6E0',
+        catAccent: CAT[sub.cat].accent,
+        catSoft: CAT[sub.cat].soft,
+      }
+    }),
+  )
+
+  const dateFormatter = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+
+  /**
+   * Kirim UMKM baru dari form "Tambah UMKM" (owner).
+   *
+   * Satu aksi menulis ke DUA tempat, meniru `UmkmController::store()` di
+   * backend yang membuat baris `umkms` (verification 'menunggu') sekaligus
+   * baris `submissions` (status 'menunggu'):
+   *   1. daftar "UMKM Saya" milik owner, bertanda Menunggu verifikasi
+   *   2. antrian "Menunggu ditinjau" milik admin
+   *
+   * Mengembalikan hasil, bukan melempar/diam — pemanggil wajib menampilkan
+   * pesan kalau gagal.
+   */
+  function submitUmkm(draft: UmkmDraft): { ok: true } | { ok: false; message: string } {
+    const name = draft.name.trim()
+    if (!name) {
+      return { ok: false, message: 'Nama UMKM wajib diisi.' }
     }
-  })
+
+    const taken =
+      myUmkmRaw.value.some((u) => u.name.toLowerCase() === name.toLowerCase()) ||
+      submissionsRaw.value.some((s) => s.name.toLowerCase() === name.toLowerCase())
+    if (taken) {
+      return { ok: false, message: `UMKM bernama "${name}" sudah terdaftar atau sedang menunggu verifikasi.` }
+    }
+
+    const filledPhotos = draft.photos.filter((p) => p.img)
+
+    // Checklist yang dilihat admin dihitung dari isi form yang sebenarnya,
+    // bukan nilai karangan — jadi meter "data lengkap" memang bermakna.
+    const checks: [string, boolean][] = [
+      ['Deskripsi usaha', !!draft.desc.trim()],
+      ['Alamat lengkap', !!draft.address.trim()],
+      ['Nomor telepon', !!draft.wa.trim()],
+      ['Foto (min. 3)', filledPhotos.length >= 3],
+      ['Jam operasional', !!draft.hours.trim()],
+      ['Kategori & wilayah', !!draft.cat && !!draft.loc],
+    ]
+
+    submissionsRaw.value.unshift({
+      name,
+      owner: auth.user?.name ?? 'Pemilik UMKM',
+      cat: draft.cat,
+      loc: draft.loc,
+      date: dateFormatter.format(new Date()),
+      checks,
+      files: draft.photos.map((p, i) => ({
+        name: p.name.trim() || `Foto ${i + 1}`,
+        kind: 'image' as const,
+        ok: !!p.img,
+        meta: p.img ? 'Diunggah dari form' : 'Belum diunggah',
+      })),
+    })
+
+    myUmkmRaw.value.unshift({
+      name,
+      cat: draft.cat,
+      loc: draft.loc,
+      rating: 0,
+      reviews: 0,
+      views: '0',
+      status: 'Aktif',
+      verification: 'Menunggu',
+    })
+
+    return { ok: true }
+  }
 
   // ---- Admin: Laporan Masalah (bug/issue reports from HelpWidget) ----
   const PROBLEM_STATUS_META: Record<ProblemReportStatus, { c: string; b: string }> = {
@@ -221,18 +316,29 @@ export const useDashboardStore = defineStore('dashboard', () => {
     if (report) report.status = status
   }
 
+  /** Keluarkan satu pengajuan dari antrian "Menunggu ditinjau". */
+  function dequeueSubmission(name: string) {
+    submissionsRaw.value = submissionsRaw.value.filter((s) => s.name !== name)
+  }
+
   function approveSubmission(name: string) {
+    dequeueSubmission(name)
+    const mine = myUmkmRaw.value.find((u) => u.name === name)
+    if (mine) mine.verification = 'Disetujui'
     alert(`UMKM "${name}" disetujui dan akan ditampilkan di website.`)
   }
   function rejectSubmission(name: string) {
+    dequeueSubmission(name)
     alert(`Pengajuan "${name}" ditolak.`)
   }
   function requestFix(name: string) {
+    // Tetap di antrian — pemilik diminta melengkapi data, belum diputuskan.
     alert(`Permintaan perbaikan data dikirim ke pemilik "${name}".`)
   }
 
   return {
     myUmkm,
+    submitUmkm,
     ownerTrash,
     ownerDeleteUmkm,
     ownerRestoreUmkm,

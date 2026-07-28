@@ -1,10 +1,27 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { useUiStore } from '@/stores/ui'
+import { useDashboardStore } from '@/stores/dashboard'
 import { CATEGORY_NAMES, LOCATION_NAMES, PRODUCT_SUBCATEGORIES } from '@/data/categories'
 import BaseModal from '@/components/shared/BaseModal.vue'
+import type { CategoryName, LocationName } from '@/types'
 
 const ui = useUiStore()
+const dashboard = useDashboardStore()
+
+/** Daftar masalah yang menghalangi submit; kosong = form valid. */
+const errors = ref<string[]>([])
+const scrollBody = ref<HTMLElement | null>(null)
+
+/**
+ * Tombol Simpan ada di footer sementara pesan error tampil di atas form yang
+ * panjang — tanpa ini, submit yang gagal akan terasa seperti tidak terjadi
+ * apa-apa karena pesannya di luar layar.
+ */
+function showErrors(list: string[]) {
+  errors.value = list
+  if (list.length) scrollBody.value?.scrollTo({ top: 0, behavior: 'smooth' })
+}
 
 const isNew = computed(() => !!ui.modalItem?.isNew)
 const title = computed(() => (isNew.value ? 'Tambah UMKM' : 'Edit UMKM'))
@@ -43,6 +60,7 @@ const draft = reactive({
 watch(
   () => ui.modalItem,
   (item) => {
+    errors.value = []
     if (item && !item.isNew) {
       draft.name = item.name ?? ''
       draft.cat = item.cat ?? CATEGORY_NAMES[0]
@@ -117,17 +135,63 @@ function toggleMenuAvail(i: number) {
   draft.menu[i].avail = !draft.menu[i].avail
 }
 
+/** Semua aturan wajib-isi, dikumpulkan sekaligus supaya user tahu semuanya. */
+function validate(): string[] {
+  const problems: string[] = []
+
+  if (!draft.name.trim()) problems.push('Nama UMKM wajib diisi.')
+  if (photoCount.value < 3) problems.push(`Unggah tepat 3 foto UMKM — saat ini baru ${photoCount.value} foto.`)
+
+  const unnamed = draft.photos.filter((p) => p.img && !p.name.trim()).length
+  if (unnamed > 0) problems.push(`Beri nama untuk ${unnamed} foto yang belum diberi nama.`)
+
+  const waDigits = draft.wa.replace(/\D/g, '')
+  if (!waDigits) problems.push('Nomor WhatsApp wajib diisi.')
+  else if (waDigits.length < 9) problems.push('Nomor WhatsApp tidak valid — minimal 9 digit angka.')
+
+  if (!draft.address.trim()) problems.push('Alamat lengkap wajib diisi.')
+  if (!draft.hours.trim()) problems.push('Jam buka wajib diisi.')
+  if (!draft.desc.trim()) problems.push('Deskripsi usaha wajib diisi.')
+
+  const menuTanpaHarga = draft.menu.filter((m) => m.name.trim() && !m.price.trim()).length
+  if (menuTanpaHarga > 0) problems.push(`${menuTanpaHarga} menu/produk sudah diberi nama tapi belum ada harganya.`)
+
+  return problems
+}
+
 function saveUmkm() {
-  if (photoCount.value < 3) {
-    alert(`Unggah tepat 3 foto UMKM. Saat ini baru ${photoCount.value} foto.`)
+  const problems = validate()
+  showErrors(problems)
+  if (problems.length) return
+
+  if (isNew.value) {
+    // Sebelumnya fungsi ini hanya menutup modal + alert sukses tanpa menyimpan
+    // apa pun — itulah akar bug "UMKM baru tidak muncul di antrian verifikasi".
+    const result = dashboard.submitUmkm({
+      name: draft.name,
+      cat: draft.cat as CategoryName,
+      loc: draft.loc as LocationName,
+      wa: draft.wa,
+      ig: draft.ig,
+      address: draft.address,
+      hours: draft.hours,
+      desc: draft.desc,
+      photos: draft.photos,
+      menu: draft.menu,
+    })
+
+    if (!result.ok) {
+      showErrors([result.message])
+      return
+    }
+
+    ui.closeModal()
+    alert('UMKM berhasil dikirim. Menunggu verifikasi admin — akan tampil & aktif setelah disetujui.')
     return
   }
+
   ui.closeModal()
-  alert(
-    isNew.value
-      ? 'UMKM berhasil dikirim. Menunggu verifikasi admin — akan tampil & aktif setelah disetujui.'
-      : 'Perubahan disimpan. Perubahan penting akan ditinjau ulang admin sebelum aktif kembali.',
-  )
+  alert('Perubahan disimpan. Perubahan penting akan ditinjau ulang admin sebelum aktif kembali.')
 }
 </script>
 
@@ -139,13 +203,28 @@ function saveUmkm() {
         <button type="button" class="text-2xl leading-none text-text-faint" @click="ui.closeModal">×</button>
       </div>
 
-      <div class="overflow-y-auto px-[26px] py-6">
+      <div ref="scrollBody" class="overflow-y-auto px-[26px] py-6">
         <div class="mb-[18px] flex items-start gap-[11px] rounded-xl border border-[#EBD9B4] bg-[#FBF3E4] px-3.5 py-3">
           <span class="text-[17px]">🛡️</span>
           <div class="text-[12.5px] leading-relaxed text-[#7A5B1E]">
             UMKM baru <b class="text-[#8A5A12]">menunggu verifikasi admin</b> sebelum tampil ke publik. Lengkapi 3
             foto agar cepat disetujui dan aktif.
           </div>
+        </div>
+
+        <div
+          v-if="errors.length"
+          role="alert"
+          aria-live="assertive"
+          class="mb-[18px] rounded-xl border border-danger-border bg-danger-tint px-3.5 py-3"
+        >
+          <div class="mb-1.5 flex items-center gap-2 text-[13px] font-extrabold text-danger-deep">
+            <span aria-hidden="true">⚠️</span>
+            {{ errors.length === 1 ? 'Belum bisa dikirim' : `Belum bisa dikirim — ${errors.length} hal perlu dilengkapi` }}
+          </div>
+          <ul class="list-disc space-y-1 pl-5 text-[12.5px] leading-relaxed text-danger-deep">
+            <li v-for="e in errors" :key="e">{{ e }}</li>
+          </ul>
         </div>
 
         <div class="mb-2 flex items-center justify-between">

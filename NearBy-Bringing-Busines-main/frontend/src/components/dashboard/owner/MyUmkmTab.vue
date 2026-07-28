@@ -36,6 +36,14 @@ function manage(name: string) {
             <div class="text-lg font-extrabold">{{ u.name }}</div>
             <span class="rounded-full px-[11px] py-1 text-[11.5px] font-bold" :style="{ background: u.catSoft, color: u.catAccent }">{{ u.cat }}</span>
             <span class="rounded-full px-[11px] py-1 text-[11.5px] font-bold" :style="{ background: u.statusBg, color: u.statusColor }">{{ u.status }}</span>
+            <!-- Status verifikasi admin — beda dari status buka/libur/tutup di atas. -->
+            <span
+              v-if="u.verification === 'Menunggu'"
+              class="rounded-full px-[11px] py-1 text-[11.5px] font-bold"
+              style="background: #f7eddc; color: #b07a1e"
+            >
+              ⏳ Menunggu verifikasi
+            </span>
           </div>
           <div class="mt-1.5 text-[13.5px] font-semibold text-text-faint">{{ u.loc }}</div>
           <div class="mt-3.5 flex gap-6">
