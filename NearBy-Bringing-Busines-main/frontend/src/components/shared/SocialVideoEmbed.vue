@@ -42,14 +42,31 @@ const embedUrl = computed<string | null>(() => {
 
 /** Reels & Shorts vertikal (9:16); video YouTube biasa 16:9. */
 const portrait = computed(() => props.video.platform === 'instagram' || isShorts.value)
+
+/**
+ * Batas lebar kartu. Rasio dijaga oleh aspect-ratio pada media box, jadi lebar
+ * inilah yang menentukan tinggi akhir video.
+ *
+ * - Landscape (16:9): dibatasi 780px supaya tidak melebar berlebihan di monitor
+ *   lebar; pada 780px tingginya 439px.
+ * - Portrait (9:16): dibatasi 400px, TAPI juga diikat ke tinggi viewport lewat
+ *   `calc(72vh*9/16)`. Tanpa ikatan itu sebuah reel 400px akan setinggi 711px —
+ *   lebih tinggi dari layar HP. Yang terkecil di antara keduanya yang menang,
+ *   jadi reel tidak pernah lebih tinggi dari ~72% layar, termasuk saat HP
+ *   diputar landscape.
+ */
+const widthClass = computed(() =>
+  portrait.value ? 'max-w-[min(400px,calc(72vh*9/16))]' : 'max-w-[780px]',
+)
 </script>
 
 <template>
-  <figure class="overflow-hidden rounded-2xl border border-border-card bg-white shadow-[0_8px_24px_rgba(9,24,40,.06)]">
-    <div
-      class="relative w-full bg-[#0F1E2D]"
-      :class="portrait ? 'aspect-[9/16]' : 'aspect-video'"
-    >
+  <figure
+    class="mx-auto w-full overflow-hidden rounded-2xl border border-border-card bg-white shadow-[0_8px_24px_rgba(9,24,40,.06)]"
+    :class="widthClass"
+  >
+    <!-- Media box: selalu 100% lebar induk + aspect-ratio, tidak pernah px tetap. -->
+    <div class="relative w-full bg-[#0F1E2D]" :class="portrait ? 'aspect-[9/16]' : 'aspect-video'">
       <iframe
         v-if="embedUrl"
         :src="embedUrl"

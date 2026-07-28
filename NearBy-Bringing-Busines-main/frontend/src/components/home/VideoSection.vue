@@ -18,7 +18,10 @@ const content = useContentStore()
         </p>
       </div>
     </div>
-    <div class="grid grid-cols-1 gap-5 mobile:grid-cols-2 tablet:grid-cols-3">
+    <!-- items-start: kartu portrait (9:16) dan landscape (16:9) punya tinggi
+         yang jauh berbeda; tanpa ini kartu pendek ikut diregangkan setinggi
+         baris dan menyisakan area putih kosong di bawah caption. -->
+    <div class="grid grid-cols-1 items-start gap-5 mobile:grid-cols-2 tablet:grid-cols-3">
       <SocialVideoEmbed
         v-for="(v, i) in content.videos"
         :key="v.id"

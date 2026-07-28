@@ -116,7 +116,7 @@ const faqs = [
         </p>
       </div>
       <div
-        class="relative flex aspect-video flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[20px] border-2 border-dashed border-[#B9C2CE]"
+        class="relative mx-auto flex aspect-video w-full max-w-[780px] flex-col items-center justify-center gap-3.5 overflow-hidden rounded-[20px] border-2 border-dashed border-[#B9C2CE]"
         style="background: repeating-linear-gradient(135deg, #eef1f5 0 16px, #f6f8fa 16px 32px)"
       >
         <div class="flex h-[74px] w-[74px] items-center justify-center rounded-full bg-brand-navy shadow-[0_12px_30px_rgba(19,50,77,.28)]">

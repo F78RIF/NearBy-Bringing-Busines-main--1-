@@ -87,7 +87,7 @@ function remove(id: string, title: string) {
       <div v-if="!content.videos.length" class="rounded-[18px] border border-dashed border-border-card p-8 text-center text-text-faint">
         Belum ada video. Tambahkan lewat form di atas.
       </div>
-      <div v-else class="grid grid-cols-1 gap-5 mobile:grid-cols-2 tablet:grid-cols-3">
+      <div v-else class="grid grid-cols-1 items-start gap-5 mobile:grid-cols-2 tablet:grid-cols-3">
         <div v-for="v in content.videos" :key="v.id" class="flex flex-col gap-2">
           <SocialVideoEmbed :video="v" />
           <div class="flex items-center gap-2">
