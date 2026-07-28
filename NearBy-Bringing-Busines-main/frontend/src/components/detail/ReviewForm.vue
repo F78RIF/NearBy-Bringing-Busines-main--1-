@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useReviewsStore } from '@/stores/reviews'
 
@@ -11,6 +11,30 @@ const reviews = useReviewsStore()
 const stars = ref(5)
 const text = ref('')
 const media = ref<{ url: string; file: File }[]>([])
+
+/**
+ * Ulasan user untuk UMKM ini, kalau sudah ada. Selama ini ada, form berada
+ * dalam mode edit — mengirim akan memperbarui ulasan tersebut, bukan menambah
+ * ulasan kedua (pola Play Store).
+ */
+const myReview = computed(() => reviews.myReviewFor(props.umkmId, auth.user?.name))
+const isEditing = computed(() => !!myReview.value)
+
+/**
+ * Isi form dengan ulasan lama. Dijalankan juga saat pindah UMKM dan saat user
+ * login/logout, bukan cuma sekali di mount — komponen detail dipakai ulang
+ * antar-halaman lewat RouterView.
+ */
+watch(
+  () => [props.umkmId, auth.user?.name] as const,
+  () => {
+    const existing = myReview.value
+    stars.value = existing?.stars ?? 5
+    text.value = existing?.text ?? ''
+    media.value = []
+  },
+  { immediate: true },
+)
 
 function onPickMedia(e: Event) {
   const files = (e.target as HTMLInputElement).files
@@ -27,15 +51,15 @@ function removeMedia(i: number) {
 
 function submit() {
   if (!text.value.trim() || !auth.user) return
-  reviews.addReview(props.umkmId, {
+  reviews.upsertReview(props.umkmId, {
     initial: auth.authInitial,
     name: auth.user.name,
     stars: stars.value,
     date: 'Baru saja',
     text: text.value.trim(),
   })
-  stars.value = 5
-  text.value = ''
+  // Form tidak dikosongkan lagi: setelah kirim, user tetap punya satu ulasan
+  // aktif dan form langsung jadi mode edit atas ulasan itu.
   media.value = []
 }
 </script>
@@ -43,7 +67,11 @@ function submit() {
 <template>
   <div class="mt-[22px] rounded-2xl border border-border-card bg-white p-5">
     <template v-if="auth.isAuthed">
-      <div class="mb-3 font-extrabold">Beri rating &amp; komentar</div>
+      <div class="mb-1 font-extrabold">{{ isEditing ? 'Ubah ulasan kamu' : 'Beri rating & komentar' }}</div>
+      <div v-if="isEditing" class="mb-3 text-[12.5px] leading-relaxed text-text-muted">
+        Kamu sudah pernah mengulas UMKM ini ({{ myReview?.date }}). Mengirim lagi akan memperbarui
+        ulasan tersebut, bukan menambah ulasan baru.
+      </div>
       <div class="mb-3 flex gap-1">
         <span
           v-for="n in 5"
@@ -82,7 +110,7 @@ function submit() {
         </label>
       </div>
       <button type="button" class="rounded-[11px] bg-brand-blue px-5 py-2.5 font-bold text-white" @click="submit">
-        Kirim ulasan
+        {{ isEditing ? 'Perbarui ulasan' : 'Kirim ulasan' }}
       </button>
     </template>
     <div v-else class="flex flex-wrap items-center justify-between gap-3">

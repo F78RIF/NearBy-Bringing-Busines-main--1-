@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { SocialVideo } from '@/types'
 
 const props = defineProps<{ video: SocialVideo }>()
@@ -44,48 +44,91 @@ const embedUrl = computed<string | null>(() => {
 const portrait = computed(() => props.video.platform === 'instagram' || isShorts.value)
 
 /**
- * Batas lebar kartu. Rasio dijaga oleh aspect-ratio pada media box, jadi lebar
- * inilah yang menentukan tinggi akhir video.
- *
- * - Landscape (16:9): dibatasi 780px supaya tidak melebar berlebihan di monitor
- *   lebar; pada 780px tingginya 439px.
- * - Portrait (9:16): dibatasi 400px, TAPI juga diikat ke tinggi viewport lewat
- *   `calc(72vh*9/16)`. Tanpa ikatan itu sebuah reel 400px akan setinggi 711px —
- *   lebih tinggi dari layar HP. Yang terkecil di antara keduanya yang menang,
- *   jadi reel tidak pernah lebih tinggi dari ~72% layar, termasuk saat HP
- *   diputar landscape.
+ * Kartu masih data contoh bawaan seeder (lihat `data/videos.ts`), atau link-nya
+ * tidak bisa diparse jadi URL embed. Dua-duanya ditampilkan sebagai pesan yang
+ * jelas, bukan thumbnail video orang lain yang membingungkan.
  */
-const widthClass = computed(() =>
-  portrait.value ? 'max-w-[min(400px,calc(72vh*9/16))]' : 'max-w-[780px]',
-)
+const unavailableReason = computed<'placeholder' | 'invalid' | null>(() => {
+  if (props.video.placeholder) return 'placeholder'
+  if (!embedUrl.value) return 'invalid'
+  return null
+})
+
+/**
+ * Latar blur diambil dari thumbnail video itu sendiri supaya area letterbox
+ * tidak terasa seperti ruang kosong. Instagram tidak menyediakan URL thumbnail
+ * publik, jadi reel jatuh ke latar gelap solid — sama-sama rapi.
+ */
+const backdropFailed = ref(false)
+watch(() => props.video.url, () => (backdropFailed.value = false))
+
+const backdropUrl = computed<string | null>(() => {
+  if (backdropFailed.value || unavailableReason.value) return null
+  if (props.video.platform !== 'youtube') return null
+  const id = youtubeId(props.video.url)
+  return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : null
+})
 </script>
 
 <template>
+  <!-- Lebar kartu seragam untuk semua orientasi — syarat supaya deretan kartu
+       terlihat rapi; yang membedakan reel dan video biasa hanya isi panggung. -->
   <figure
-    class="mx-auto w-full overflow-hidden rounded-2xl border border-border-card bg-white shadow-[0_8px_24px_rgba(9,24,40,.06)]"
-    :class="widthClass"
+    class="mx-auto w-full max-w-[440px] overflow-hidden rounded-2xl border border-border-card bg-white shadow-[0_8px_24px_rgba(9,24,40,.06)]"
   >
-    <!-- Media box: selalu 100% lebar induk + aspect-ratio, tidak pernah px tetap. -->
-    <div class="relative w-full bg-[#0F1E2D]" :class="portrait ? 'aspect-[9/16]' : 'aspect-video'">
-      <iframe
-        v-if="embedUrl"
-        :src="embedUrl"
-        :title="video.title"
-        class="absolute inset-0 h-full w-full"
-        frameborder="0"
-        loading="lazy"
-        scrolling="no"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        allowfullscreen
-        referrerpolicy="strict-origin-when-cross-origin"
+    <!--
+      Panggung (stage) bertinggi TETAP — inilah yang menyamakan tinggi semua
+      kartu. Tingginya dipegang variabel `--stage-h` supaya bisa diubah per
+      breakpoint dan tetap bisa dipakai calc() oleh frame di dalamnya.
+    -->
+    <div
+      class="relative grid w-full place-items-center overflow-hidden bg-[#0F1E2D] [--stage-h:400px] mobile:[--stage-h:430px] tablet:[--stage-h:440px]"
+      style="height: var(--stage-h)"
+    >
+      <img
+        v-if="backdropUrl"
+        :src="backdropUrl"
+        alt=""
+        aria-hidden="true"
+        class="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-2xl"
+        @error="backdropFailed = true"
       />
-      <div
-        v-else
-        class="absolute inset-0 flex flex-col items-center justify-center gap-2 p-4 text-center text-white/80"
-      >
-        <span class="text-2xl">⚠️</span>
-        <span class="text-[13px] font-semibold">Link video tidak valid</span>
-        <span class="text-[11px] text-white/50 break-all">{{ video.url }}</span>
+
+      <!--
+        Frame: rasio asli video, di-"contain" ke dalam panggung.
+        Lebarnya `min(100%, tinggi-panggung × rasio)` — dua batas sekaligus,
+        jadi sisi mana pun yang lebih dulu mentok, sisi itu yang menentukan.
+        Hasilnya letterbox (atas-bawah) untuk 16:9 dan pillarbox (kiri-kanan)
+        untuk 9:16, tanpa crop dan tanpa rasio yang gepeng.
+      -->
+      <div v-if="!unavailableReason" class="relative" :class="portrait ? 'frame-portrait' : 'frame-landscape'">
+        <iframe
+          :src="embedUrl!"
+          :title="video.title"
+          class="absolute inset-0 h-full w-full"
+          frameborder="0"
+          loading="lazy"
+          scrolling="no"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowfullscreen
+          referrerpolicy="strict-origin-when-cross-origin"
+        />
+      </div>
+
+      <div v-else class="relative flex flex-col items-center justify-center gap-2 p-5 text-center">
+        <span class="text-[26px]" aria-hidden="true">{{ unavailableReason === 'placeholder' ? '🎬' : '⚠️' }}</span>
+        <span class="text-[14px] font-extrabold text-white">
+          {{ unavailableReason === 'placeholder' ? 'Video belum tersedia' : 'Link video tidak valid' }}
+        </span>
+        <span class="max-w-[260px] text-[11.5px] leading-relaxed text-white/60">
+          <template v-if="unavailableReason === 'placeholder'">
+            Konten ini masih memakai link contoh. Admin bisa menggantinya lewat Dashboard → Konten Video.
+          </template>
+          <template v-else>Link tidak bisa dibaca sebagai video {{ video.platform === 'instagram' ? 'Instagram' : 'YouTube' }}.</template>
+        </span>
+        <span v-if="unavailableReason === 'invalid'" class="max-w-full text-[10.5px] break-all text-white/35">
+          {{ video.url }}
+        </span>
       </div>
     </div>
     <figcaption class="flex items-center gap-2 px-3.5 py-3">
@@ -103,3 +146,21 @@ const widthClass = computed(() =>
     </figcaption>
   </figure>
 </template>
+
+<style scoped>
+/*
+ * Rumusnya sama untuk kedua orientasi, hanya rasionya yang berbeda:
+ *   lebar = min(lebar kartu, tinggi panggung × rasio)
+ * Karena `aspect-ratio` yang menurunkan tinggi dari lebar, video mustahil
+ * gepeng — batas kedua hanya mengecilkan lebarnya, bukan meregangkan tinggi.
+ */
+.frame-landscape {
+  aspect-ratio: 16 / 9;
+  width: min(100%, calc(var(--stage-h) * 16 / 9));
+}
+
+.frame-portrait {
+  aspect-ratio: 9 / 16;
+  width: min(100%, calc(var(--stage-h) * 9 / 16));
+}
+</style>

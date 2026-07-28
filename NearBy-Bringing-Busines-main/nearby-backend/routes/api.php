@@ -65,6 +65,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Reviews
     Route::get('/me/reviews', [ReviewController::class, 'mine']);
+    // Ulasan milik user untuk satu UMKM — dipakai frontend untuk mengisi form
+    // dalam mode "edit" saat halaman detail dibuka.
+    Route::get('/umkm/{umkm}/reviews/mine', [ReviewController::class, 'mineForUmkm']);
     Route::post('/umkm/{umkm}/reviews', [ReviewController::class, 'store']);
     Route::put('/reviews/{review}', [ReviewController::class, 'update']);
     Route::delete('/reviews/{review}', [ReviewController::class, 'destroy']);

@@ -22,7 +22,13 @@ export const useContentStore = defineStore('content', () => {
 
   function updateVideo(id: string, patch: Partial<Omit<SocialVideo, 'id'>>) {
     const v = videos.value.find((x) => x.id === id)
-    if (v) Object.assign(v, patch)
+    if (!v) return
+    Object.assign(v, patch)
+    // Begitu admin mengganti link-nya, entri ini bukan data contoh lagi —
+    // flag placeholder dilepas otomatis supaya videonya langsung tampil.
+    if (patch.url !== undefined && patch.url.trim() && patch.placeholder === undefined) {
+      v.placeholder = false
+    }
   }
 
   function removeVideo(id: string) {

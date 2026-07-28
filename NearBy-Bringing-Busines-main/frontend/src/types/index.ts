@@ -47,6 +47,12 @@ export type UmkmStatus = 'Aktif' | 'Libur' | 'Tutup'
 export interface Review {
   id: string
   umkmId: number
+  /**
+   * Identitas penulis. Prototype belum punya user id, jadi nama yang
+   * dinormalkan (lihat `authorKey()`) yang dipakai sebagai kunci — padanan
+   * `user_id` di backend. Satu userKey hanya boleh punya satu ulasan per UMKM.
+   */
+  userKey: string
   initial: string
   name: string
   stars: number
@@ -64,6 +70,13 @@ export interface SocialVideo {
   /** Link asli dari platform (mis. URL Reels / YouTube). Diparse jadi URL embed. */
   url: string
   title: string
+  /**
+   * true = `url` masih link contoh bawaan seeder, bukan konten OLEHKITA asli.
+   * Kartu akan menampilkan "Video belum tersedia" alih-alih menyematkan video
+   * milik orang lain yang tidak nyambung dengan judulnya. Hapus flag ini (atau
+   * ganti url lewat panel admin) begitu link aslinya dipasang.
+   */
+  placeholder?: boolean
 }
 
 export type Role = 'user' | 'owner' | 'admin'

@@ -27,7 +27,23 @@ class ReviewController extends Controller
         return ReviewResource::collection($reviews);
     }
 
-    /** Authenticated user posts a review. */
+    /** The authenticated user's own review for one UMKM (for prefilling the form). */
+    public function mineForUmkm(Request $request, Umkm $umkm)
+    {
+        $review = $umkm->reviews()
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        return $review ? new ReviewResource($review) : response()->json(['data' => null]);
+    }
+
+    /**
+     * Authenticated user posts a review — upsert, pola Play Store.
+     *
+     * Satu akun hanya punya satu ulasan per UMKM. Kalau user sudah pernah
+     * mengulas UMKM ini, ulasan lamanya yang diperbarui (rating, teks, dan
+     * `updated_at` jadi "baru saja") — bukan bikin baris baru.
+     */
     public function store(Request $request, Umkm $umkm)
     {
         $data = $request->validate([
@@ -35,9 +51,30 @@ class ReviewController extends Controller
             'text' => ['nullable', 'string', 'max:2000'],
         ]);
 
+        $user = $request->user();
+        $existing = $umkm->reviews()->where('user_id', $user->id)->first();
+
+        if ($existing) {
+            $existing->update([
+                'author_name' => $user->name,
+                'stars' => $data['stars'],
+                'text' => $data['text'] ?? null,
+            ]);
+
+            // `update()` sudah menyentuh updated_at hanya jika ada nilai yang
+            // berubah; touch() menjamin ulasan naik ke urutan teratas walau
+            // user menekan kirim tanpa mengubah apa pun.
+            $existing->touch();
+
+            // reviews_count TIDAK ditambah — jumlah pengulas tidak bertambah.
+            $this->recomputeRating($umkm);
+
+            return new ReviewResource($existing->fresh());
+        }
+
         $review = $umkm->reviews()->create([
-            'user_id' => $request->user()->id,
-            'author_name' => $request->user()->name,
+            'user_id' => $user->id,
+            'author_name' => $user->name,
             'stars' => $data['stars'],
             'text' => $data['text'] ?? null,
         ]);
@@ -50,7 +87,7 @@ class ReviewController extends Controller
         // review is reflected instead of leaving the seeded rating stale.
         $this->recomputeRating($umkm);
 
-        return new ReviewResource($review);
+        return (new ReviewResource($review))->response()->setStatusCode(201);
     }
 
     /** Author edits their own review. */

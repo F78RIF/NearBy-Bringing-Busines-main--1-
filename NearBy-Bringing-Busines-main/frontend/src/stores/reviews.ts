@@ -1,6 +1,6 @@
 import { reactive } from 'vue'
 import { defineStore } from 'pinia'
-import { seedReviewsFor } from '@/data/reviews'
+import { authorKey, seedReviewsFor } from '@/data/reviews'
 import type { Review } from '@/types'
 
 export const useReviewsStore = defineStore('reviews', () => {
@@ -13,9 +13,42 @@ export const useReviewsStore = defineStore('reviews', () => {
     return byUmkm.get(umkmId)!
   }
 
-  function addReview(umkmId: number, review: Omit<Review, 'id' | 'umkmId'>) {
+  /** Ulasan milik satu penulis untuk satu UMKM — maksimal satu, atau tidak ada. */
+  function myReviewFor(umkmId: number, name: string | undefined | null): Review | undefined {
+    if (!name) return undefined
+    const key = authorKey(name)
+    return reviewsFor(umkmId).find((r) => r.userKey === key)
+  }
+
+  /**
+   * Kirim ulasan — pola Play Store: satu akun hanya punya satu ulasan per UMKM.
+   *
+   * Kalau penulis sudah pernah mengulas UMKM ini, ulasan itu yang diperbarui
+   * (rating, teks, tanggal jadi "Baru saja") lalu dinaikkan ke urutan teratas.
+   * Baris baru hanya dibuat kalau memang belum pernah mengulas — inilah
+   * perbaikan duplikasi, padanan `ReviewController::store()` di backend.
+   */
+  function upsertReview(umkmId: number, review: Omit<Review, 'id' | 'umkmId' | 'userKey'>): Review {
     const list = reviewsFor(umkmId)
-    list.unshift({ ...review, id: `${umkmId}-${Date.now()}`, umkmId })
+    const key = authorKey(review.name)
+    const idx = list.findIndex((r) => r.userKey === key)
+
+    if (idx !== -1) {
+      const existing = list[idx]
+      existing.stars = review.stars
+      existing.text = review.text
+      existing.date = review.date
+      existing.initial = review.initial
+      // Naikkan ke atas supaya perubahan langsung terlihat — sama seperti
+      // backend yang mengurutkan ulasan berdasarkan updated_at terbaru.
+      list.splice(idx, 1)
+      list.unshift(existing)
+      return existing
+    }
+
+    const created: Review = { ...review, id: `${umkmId}-${Date.now()}`, umkmId, userKey: key }
+    list.unshift(created)
+    return created
   }
 
   function updateReview(umkmId: number, reviewId: string, changes: { stars: number; text: string }) {
@@ -32,5 +65,5 @@ export const useReviewsStore = defineStore('reviews', () => {
     if (idx !== -1) list.splice(idx, 1)
   }
 
-  return { reviewsFor, addReview, updateReview, deleteReview }
+  return { reviewsFor, myReviewFor, upsertReview, updateReview, deleteReview }
 })

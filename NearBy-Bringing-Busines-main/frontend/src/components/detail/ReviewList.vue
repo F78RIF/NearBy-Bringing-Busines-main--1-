@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { starsLabel } from '@/data/reviews'
+import { authorKey, starsLabel } from '@/data/reviews'
 import { useAuthStore } from '@/stores/auth'
 import { useReviewsStore } from '@/stores/reviews'
 import StarRating from '@/components/shared/StarRating.vue'
@@ -19,7 +19,10 @@ const editStars = ref(5)
 const editText = ref('')
 
 function isMine(rv: Review) {
-  return auth.isAuthed && rv.name === auth.user?.name
+  // Bandingkan lewat userKey (nama ternormalisasi) supaya konsisten dengan
+  // kunci yang dipakai upsertReview — perbandingan nama mentah bisa meleset
+  // hanya karena beda spasi/kapital.
+  return auth.isAuthed && !!auth.user && rv.userKey === authorKey(auth.user.name)
 }
 
 function startEdit(rv: Review) {

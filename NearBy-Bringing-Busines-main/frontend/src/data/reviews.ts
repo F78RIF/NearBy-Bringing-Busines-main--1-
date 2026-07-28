@@ -6,7 +6,16 @@ import type { Review } from '@/types'
  * submitted review can be appended to just that business — same visual
  * result, slightly more correct data model.
  */
-const BASE_REVIEWS: Omit<Review, 'id' | 'umkmId'>[] = [
+/**
+ * Kunci identitas penulis ulasan. Backend memakai `user_id`; prototype ini
+ * belum punya id user sama sekali (lihat `stores/auth.ts` — sesi hanya berisi
+ * nama + role), jadi nama yang dinormalkan yang jadi kuncinya.
+ */
+export function authorKey(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+const BASE_REVIEWS: Omit<Review, 'id' | 'umkmId' | 'userKey'>[] = [
   {
     initial: 'R',
     name: 'Rani Oktaviani',
@@ -31,7 +40,7 @@ const BASE_REVIEWS: Omit<Review, 'id' | 'umkmId'>[] = [
 ]
 
 export function seedReviewsFor(umkmId: number): Review[] {
-  return BASE_REVIEWS.map((r, i) => ({ ...r, id: `${umkmId}-${i}`, umkmId }))
+  return BASE_REVIEWS.map((r, i) => ({ ...r, id: `${umkmId}-${i}`, umkmId, userKey: authorKey(r.name) }))
 }
 
 export function starsLabel(stars: number): string {
