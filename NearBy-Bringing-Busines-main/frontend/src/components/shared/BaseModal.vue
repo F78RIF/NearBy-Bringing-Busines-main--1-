@@ -9,7 +9,7 @@ const emit = defineEmits<{ close: [] }>()
     @click="emit('close')"
   >
     <div
-      class="w-full animate-[floatUp_.18s_ease_both] rounded-[18px] bg-white shadow-[0_30px_70px_rgba(9,24,40,.4)]"
+      class="animate-float-up w-full rounded-[18px] bg-white shadow-[0_30px_70px_rgba(9,24,40,.4)]"
       :class="maxWidth"
       @click.stop
     >

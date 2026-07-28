@@ -3,6 +3,16 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
 
+  /* ── Motion ────────────────────────────────────────────────────────────
+     Satu sumber kebenaran untuk seluruh transisi/animasi frontend.
+     Tailwind meng-compile `transition`, `transition-all`, `transition-colors`
+     dsb. menjadi `transition-duration: var(--tw-duration, var(--default-
+     transition-duration))`, jadi mengganti dua variabel di bawah otomatis
+     memperlambat SEMUA utility transition di aplikasi — tanpa menyentuh
+     satu pun komponen. */
+  --default-transition-duration: 500ms;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+
   /* Prototype only ever uses these two breakpoints. */
   --breakpoint-mobile: 560px;
   --breakpoint-tablet: 860px;
@@ -59,6 +69,31 @@
   --color-cat-jasa-soft: #eef0f2;
 }
 
+/* ── Aksesibilitas: token durasi/easing global ─────────────────────────────
+   Dipakai oleh animasi custom di bawah + komponen AccessibilityToolbar.
+   Toggle "Animasi lambat & halus" di toolbar menambah/menghapus class
+   `a11y-motion-normal` pada <html> untuk mengembalikan timing cepat. */
+:root {
+  --a11y-dur: 500ms;
+  --a11y-dur-lg: 600ms;
+  --a11y-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --a11y-ease-out: cubic-bezier(0.16, 0.8, 0.3, 1);
+}
+
+/* Utility `duration-*` yang eksplisit (mis. duration-150) ikut diperlambat
+   agar konsisten. Subtree toolbar aksesibilitas sengaja dikecualikan supaya
+   kontrolnya tetap terasa responsif. */
+html:not(.a11y-motion-normal) *:not([data-a11y-ui]):not([data-a11y-ui] *) {
+  --tw-duration: var(--a11y-dur) !important;
+}
+
+html.a11y-motion-normal {
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  --a11y-dur: 200ms;
+  --a11y-dur-lg: 320ms;
+}
+
 @keyframes floatUp {
   from {
     opacity: 0;
@@ -71,7 +106,7 @@
 }
 
 .animate-float-up {
-  animation: floatUp 0.6s ease both;
+  animation: floatUp var(--a11y-dur-lg) var(--a11y-ease) both;
 }
 
 @keyframes drift {
@@ -92,8 +127,8 @@
   opacity: 0;
   transform: translateY(28px);
   transition:
-    opacity 0.7s cubic-bezier(0.16, 0.8, 0.3, 1),
-    transform 0.7s cubic-bezier(0.16, 0.8, 0.3, 1);
+    opacity var(--a11y-dur-lg) var(--a11y-ease-out),
+    transform var(--a11y-dur-lg) var(--a11y-ease-out);
   transition-delay: var(--reveal-delay, 0ms);
   will-change: opacity, transform;
 }
@@ -117,7 +152,7 @@
 
 .page-enter-active,
 .page-leave-active {
-  transition: opacity 0.32s ease;
+  transition: opacity var(--a11y-dur) var(--a11y-ease);
 }
 
 .page-enter-from,

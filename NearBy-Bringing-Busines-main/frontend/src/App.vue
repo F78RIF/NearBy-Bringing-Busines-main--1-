@@ -7,6 +7,7 @@ import AppFooter from '@/components/layout/AppFooter.vue'
 import HelpWidget from '@/components/layout/HelpWidget.vue'
 import SettingsModal from '@/components/account/SettingsModal.vue'
 import RestoreBanner from '@/components/account/RestoreBanner.vue'
+import AccessibilityToolbar from '@/components/accessibility/AccessibilityToolbar.vue'
 
 const route = useRoute()
 const ui = useUiStore()
@@ -27,5 +28,8 @@ const showChrome = computed(() => route.meta.chrome !== false)
     <AppFooter v-if="showChrome" />
     <HelpWidget v-if="showChrome" />
     <SettingsModal v-if="ui.settingsOpen" />
+    <!-- Toolbar aksesibilitas: tampil di semua halaman. `offset-top` menggeser
+         posisinya ke bawah AppHeader yang sticky agar tidak menutupi menu. -->
+    <AccessibilityToolbar :offset-top="showChrome" side="right" />
   </div>
 </template>
