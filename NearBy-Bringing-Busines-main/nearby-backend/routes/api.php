@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\OwnerController;
+use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\SubmissionController;
@@ -62,6 +63,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Berkas legalitas untuk pengajuan verifikasi (owner)
     Route::post('/submissions/{submission}/files', [SubmissionController::class, 'attachFile']);
+
+    // Kalkulator HPP & masa tahan makanan (rule-based, owner)
+    Route::get('/food-rules', [RecipeController::class, 'rules']);
+    Route::post('/hpp/calculate', [RecipeController::class, 'calculate'])->name('recipes.calculate');
+    Route::apiResource('recipes', RecipeController::class);
 
     // Reviews
     Route::get('/me/reviews', [ReviewController::class, 'mine']);

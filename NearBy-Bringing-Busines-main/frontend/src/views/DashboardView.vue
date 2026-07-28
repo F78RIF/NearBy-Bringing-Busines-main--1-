@@ -11,6 +11,7 @@ import LaporanMasalahTab from '@/components/dashboard/admin/LaporanMasalahTab.vu
 import KontenVideoTab from '@/components/dashboard/admin/KontenVideoTab.vue'
 import RingkasanTab from '@/components/dashboard/owner/RingkasanTab.vue'
 import MyUmkmTab from '@/components/dashboard/owner/MyUmkmTab.vue'
+import KalkulatorTab from '@/components/dashboard/owner/KalkulatorTab.vue'
 import UlasanTab from '@/components/dashboard/owner/UlasanTab.vue'
 import TrashTab from '@/components/dashboard/shared/TrashTab.vue'
 import ProfileEditCard from '@/components/dashboard/shared/ProfileEditCard.vue'
@@ -36,6 +37,7 @@ const tab = computed(() => props.tab ?? (isAdmin.value ? 'verif' : 'ringkasan'))
     <template v-else>
       <RingkasanTab v-if="tab === 'ringkasan'" />
       <MyUmkmTab v-else-if="tab === 'myumkm'" />
+      <KalkulatorTab v-else-if="tab === 'kalkulator'" />
       <UlasanTab v-else-if="tab === 'ulasan'" />
       <TrashTab v-else-if="tab === 'trash'" />
       <ProfileEditCard v-else-if="tab === 'profil'" title="Profil" subtitle="Perbarui informasi akun pemilik UMKM-mu." />

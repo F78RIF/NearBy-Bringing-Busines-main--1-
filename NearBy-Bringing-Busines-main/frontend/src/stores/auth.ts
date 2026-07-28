@@ -1,6 +1,9 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
+import { http, setAuthToken } from '@/services/http'
 import type { AuthUser, Role } from '@/types'
+
+const TOKEN_KEY = 'nearby.apiToken'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<AuthUser | null>(null)
@@ -61,11 +64,58 @@ export const useAuthStore = defineStore('auth', () => {
 
   function logout() {
     user.value = null
+    apiLogout()
+  }
+
+  /* ---------------------------------------------------------------- *
+   * Sesi API sungguhan (Sanctum)
+   *
+   * Terpisah dari login mock di atas dan sepenuhnya opsional: halaman
+   * lama tetap jalan dari seed tanpa ini. Hanya fitur yang benar-benar
+   * membaca/menulis database (Kalkulator) yang membutuhkannya.
+   * ---------------------------------------------------------------- */
+
+  const apiToken = ref<string | null>(localStorage.getItem(TOKEN_KEY))
+  const apiUser = ref<{ name: string; email: string; role: string } | null>(null)
+
+  // Pulihkan token dari sesi sebelumnya supaya tidak perlu login ulang
+  // setiap kali dev server di-reload.
+  if (apiToken.value) setAuthToken(apiToken.value)
+
+  const isApiConnected = computed(() => !!apiToken.value)
+
+  async function apiLogin(email: string, password: string) {
+    const res = await http.post<{ token: string; data?: unknown; user?: { name: string; email: string; role: string } }>(
+      '/login',
+      { email, password },
+    )
+
+    apiToken.value = res.token
+    localStorage.setItem(TOKEN_KEY, res.token)
+    setAuthToken(res.token)
+
+    // UserResource membungkus payload-nya dalam `data`.
+    const payload = (res.user ?? (res as { data?: { name: string; email: string; role: string } }).data) ?? null
+    apiUser.value = payload
+
+    return payload
+  }
+
+  function apiLogout() {
+    apiToken.value = null
+    apiUser.value = null
+    localStorage.removeItem(TOKEN_KEY)
+    setAuthToken(null)
   }
 
   return {
     user,
     regRole,
+    apiToken,
+    apiUser,
+    isApiConnected,
+    apiLogin,
+    apiLogout,
     isGuest,
     isAuthed,
     isOwner,

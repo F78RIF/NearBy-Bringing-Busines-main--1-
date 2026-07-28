@@ -26,6 +26,7 @@ const adminMenu = computed(() => [
 const ownerMenu = computed(() => [
   { key: 'ringkasan', label: 'Ringkasan' },
   { key: 'myumkm', label: 'UMKM Saya' },
+  { key: 'kalkulator', label: 'Kalkulator Harga' },
   { key: 'ulasan', label: 'Ulasan' },
   { key: 'trash', label: dashboard.ownerTrash.length ? `Tempat Sampah (${dashboard.ownerTrash.length})` : 'Tempat Sampah' },
 ])
