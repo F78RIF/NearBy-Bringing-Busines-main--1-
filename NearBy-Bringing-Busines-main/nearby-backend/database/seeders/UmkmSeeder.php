@@ -9,7 +9,7 @@ class UmkmSeeder extends Seeder
 {
     /**
      * Verbatim seed data extracted from the frontend `src/data/umkm.ts`.
-     * Owner assignment: ids 1 and 4 belong to the demo owner "Dewi Anjani"
+     * Owner assignment: ids 1 and 4 belong to the owner account "Dewi Anjani"
      * (matches the frontend dashboard seed), the rest are unassigned.
      */
     public function run(): void
@@ -31,7 +31,7 @@ class UmkmSeeder extends Seeder
      */
     private function data(): array
     {
-        // Demo owner (Dewi Anjani) is user id 2 — see UserSeeder.
+        // Owner (Dewi Anjani) is user id 2 — see UserSeeder.
         $ownerId = 2;
 
         return [

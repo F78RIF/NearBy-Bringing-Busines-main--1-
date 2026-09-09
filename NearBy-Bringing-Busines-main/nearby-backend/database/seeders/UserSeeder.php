@@ -4,16 +4,19 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
     /**
-     * Demo accounts mirror the frontend's mocked logins:
-     *  - user  : Rizky Pratama
-     *  - owner : Dewi Anjani  (owns UMKM ids 1 & 4)
-     *  - admin : Admin NearBy
-     * Plus the extra accounts listed in the admin "Pengguna" table.
-     * Default password for every account: "password".
+     * Akun awal aplikasi: pemilik UMKM yang dirujuk UmkmSeeder (Dewi Anjani =
+     * user id 2), beberapa pengguna untuk tabel "Pengguna" di dashboard admin,
+     * dan satu administrator.
+     *
+     * Kata sandi TIDAK di-hardcode. Isi `SEED_USER_PASSWORD` di `.env` bila
+     * akun-akun ini perlu bisa dipakai masuk; tanpa itu setiap akun mendapat
+     * kata sandi acak yang tidak bisa ditebak (ubah lewat "lupa kata sandi"
+     * atau reset dari panel admin).
      */
     public function run(): void
     {
@@ -26,11 +29,13 @@ class UserSeeder extends Seeder
             ['name' => 'Admin NearBy', 'email' => 'admin@nearby.id', 'role' => 'admin', 'status' => 'aktif'],
         ];
 
+        $password = env('SEED_USER_PASSWORD');
+
         foreach ($accounts as $account) {
             User::create([
                 ...$account,
                 'phone' => '0812-0000-0000',
-                'password' => 'password',
+                'password' => $password ?: Str::random(40),
             ]);
         }
     }

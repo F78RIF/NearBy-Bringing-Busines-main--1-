@@ -20,13 +20,21 @@ php artisan migrate:fresh --seed
 php artisan serve            # http://127.0.0.1:8000
 ```
 
-## Akun demo (password semua: `password`)
+## Akun hasil seeder
+
+Tidak ada akun demo dan tidak ada kata sandi bawaan. Seeder membuat akun berikut
+dengan kata sandi **acak**, kecuali `SEED_USER_PASSWORD` diisi di `.env` sebelum
+`php artisan migrate:fresh --seed`:
 
 | Email                 | Role  | Nama          |
 |-----------------------|-------|---------------|
 | `rizky.p@mail.com`    | user  | Rizky Pratama |
 | `dewi.umkm@mail.com`  | owner | Dewi Anjani (punya UMKM #1 & #4) |
 | `admin@nearby.id`     | admin | Admin NearBy  |
+
+Masuk ke aplikasi hanya lewat `POST /api/login` dengan kredensial asli. Kata sandi
+akun yang terlanjur acak bisa diatur ulang lewat `POST /api/forgot-password`
+atau `POST /api/admin/users/{user}/reset-password` (oleh admin).
 
 ---
 

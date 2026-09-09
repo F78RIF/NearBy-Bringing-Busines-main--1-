@@ -1,13 +1,14 @@
 <script setup lang="ts">
+import { useRouter } from 'vue-router'
 import { useAccountStore } from '@/stores/account'
-import { useAuthStore } from '@/stores/auth'
 
 const account = useAccountStore()
-const auth = useAuthStore()
+const router = useRouter()
 
+// Pemulihan akun tidak membuat sesi baru: user harus masuk kembali dengan
+// kredensial aslinya lewat halaman login.
 function restore() {
-  const restored = account.restoreMyAccount()
-  if (restored) auth.login(restored.name, restored.role)
+  if (account.restoreMyAccount()) router.push({ name: 'login' })
 }
 </script>
 

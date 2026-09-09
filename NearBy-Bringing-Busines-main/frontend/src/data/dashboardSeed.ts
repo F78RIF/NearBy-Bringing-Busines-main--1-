@@ -33,7 +33,7 @@ export const DASH_REVIEWS: SimpleReview[] = [
   { initial: 'M', name: 'Maya S.', stars: 5, text: 'Favorit keluarga kami di Balikpapan.' },
 ]
 
-/** The owner demo account's 2 owned businesses (matches seed UMKM ids 1 and 4). */
+/** The owner account's 2 owned businesses (matches seed UMKM ids 1 and 4). */
 export const MY_UMKM_RAW: MyUmkmRaw[] = [
   { name: 'Warung Kepiting Kenari', cat: 'Kuliner', loc: 'Balikpapan Timur', rating: 4.8, reviews: 213, views: '2.1rb', status: 'Aktif' },
   { name: 'Amplang Bahari', cat: 'Oleh-Oleh', loc: 'Balikpapan Utara', rating: 4.9, reviews: 321, views: '1.3rb', status: 'Aktif' },

@@ -7,28 +7,6 @@ import type { IngredientInput, StorageMode } from '@/types'
 const auth = useAuthStore()
 const calc = useCalculatorStore()
 
-/* ---------------- Sesi API ----------------
- * Kalkulator adalah satu-satunya fitur yang menulis ke database, jadi
- * butuh token Sanctum. Login utama aplikasi masih mock, karena itu di
- * sini disediakan panel sambung terpisah. */
-const cred = reactive({ email: 'dewi.umkm@mail.com', password: '' })
-const connecting = ref(false)
-const connectError = ref('')
-
-async function connect() {
-  connectError.value = ''
-  connecting.value = true
-  try {
-    await auth.apiLogin(cred.email, cred.password)
-    cred.password = ''
-    await init()
-  } catch (e) {
-    connectError.value = e instanceof Error ? e.message : 'Gagal menyambung ke server.'
-  } finally {
-    connecting.value = false
-  }
-}
-
 /* ---------------- Form ---------------- */
 const BLANK_ROW = (): IngredientInput => ({ name: '', qty: '', unit: 'g', price: '' })
 
@@ -123,31 +101,15 @@ const gram = (n: number) => new Intl.NumberFormat('id-ID').format(n) + ' g'
     </p>
   </div>
 
-  <!-- Panel sambung ke server -->
+  <!-- Butuh sesi API aktif: fitur ini membaca/menulis ke database -->
   <div v-if="!auth.isApiConnected" class="rounded-[18px] border border-border-card bg-white p-[22px] shadow-[0_4px_16px_rgba(19,50,77,.04)]">
-    <div class="text-[17px] font-extrabold">Sambungkan ke server</div>
+    <div class="text-[17px] font-extrabold">Sesi kamu sudah berakhir</div>
     <p class="mt-1.5 text-[13.5px] leading-relaxed text-text-muted">
-      Fitur ini menyimpan data ke database, jadi perlu masuk dengan akun asli.
-      Pastikan backend berjalan (<code class="rounded bg-[#F4F0E7] px-1.5 py-0.5 text-[12px]">php artisan serve</code>).
+      Fitur ini menyimpan data ke database. Silakan
+      <RouterLink :to="{ name: 'login' }" class="font-extrabold text-brand-blue">masuk kembali</RouterLink>
+      dengan akunmu. Pastikan backend berjalan
+      (<code class="rounded bg-[#F4F0E7] px-1.5 py-0.5 text-[12px]">php artisan serve</code>).
     </p>
-
-    <div v-if="connectError" role="alert" class="mt-3.5 rounded-xl border border-danger-border bg-danger-tint px-3.5 py-3 text-[12.5px] font-semibold text-danger-deep">
-      {{ connectError }}
-    </div>
-
-    <div class="mt-4 grid grid-cols-1 gap-3 mobile:grid-cols-2">
-      <div>
-        <label class="mb-1.5 block text-[13px] font-bold">Email</label>
-        <input v-model="cred.email" type="email" class="w-full rounded-xl border border-border-input bg-white px-3.5 py-2.5" />
-      </div>
-      <div>
-        <label class="mb-1.5 block text-[13px] font-bold">Kata sandi</label>
-        <input v-model="cred.password" type="password" placeholder="password" class="w-full rounded-xl border border-border-input bg-white px-3.5 py-2.5" @keyup.enter="connect" />
-      </div>
-    </div>
-    <button type="button" class="mt-4 rounded-xl bg-brand-blue px-[22px] py-2.5 font-extrabold text-white disabled:opacity-60" :disabled="connecting" @click="connect">
-      {{ connecting ? 'Menyambungkan…' : 'Sambungkan' }}
-    </button>
   </div>
 
   <template v-else>

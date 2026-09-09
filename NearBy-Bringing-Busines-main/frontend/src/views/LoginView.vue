@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { ApiError } from '@/services/http'
 import AuthLayout from '@/components/auth/AuthLayout.vue'
 import ForgotPasswordModal from '@/components/auth/ForgotPasswordModal.vue'
 import logo from '@/assets/logo-nearby.png'
@@ -12,28 +13,33 @@ const auth = useAuthStore()
 const loginEmail = ref('')
 const loginPass = ref('')
 const forgotOpen = ref(false)
+const submitting = ref(false)
+const errors = ref<string[]>([])
 
-function doLogin() {
-  auth.doLogin()
-  router.push({ name: 'beranda' })
+async function doLogin() {
+  errors.value = []
+
+  if (!loginEmail.value.trim() || !loginPass.value) {
+    errors.value = ['Email dan password wajib diisi.']
+    return
+  }
+
+  submitting.value = true
+  try {
+    const account = await auth.login(loginEmail.value.trim(), loginPass.value)
+    loginPass.value = ''
+    const role = account?.role
+    router.push(role === 'owner' || role === 'admin' ? { name: 'dashboard' } : { name: 'beranda' })
+  } catch (e) {
+    errors.value = e instanceof ApiError ? e.messages : ['Gagal masuk. Coba lagi.']
+  } finally {
+    submitting.value = false
+  }
 }
 
-function continueAsGuest() {
-  auth.logout()
+async function continueAsGuest() {
+  await auth.logout()
   router.push({ name: 'beranda' })
-}
-
-function loginAsUser() {
-  auth.loginAsUser()
-  router.push({ name: 'beranda' })
-}
-function loginAsOwner() {
-  auth.loginAsOwner()
-  router.push({ name: 'dashboard' })
-}
-function loginAsAdmin() {
-  auth.loginAsAdmin()
-  router.push({ name: 'dashboard' })
 }
 </script>
 
@@ -69,10 +75,24 @@ function loginAsAdmin() {
         </div>
 
         <div class="animate-float-up" style="animation-delay: .12s">
-          <label class="mb-1.5 block text-[13.5px] font-bold">Username / Email</label>
+          <div
+            v-if="errors.length"
+            role="alert"
+            aria-live="assertive"
+            class="mb-4 rounded-xl border border-danger-border bg-danger-tint px-3.5 py-3 text-[12.5px] font-semibold text-danger-deep"
+          >
+            <ul class="space-y-1">
+              <li v-for="e in errors" :key="e">{{ e }}</li>
+            </ul>
+          </div>
+
+          <label class="mb-1.5 block text-[13.5px] font-bold">Email</label>
           <input
             v-model="loginEmail"
+            type="email"
+            autocomplete="email"
             placeholder="nama@email.com"
+            @keyup.enter="doLogin"
             class="mb-4 w-full rounded-xl border border-border-input bg-white px-[15px] py-[13px] transition-shadow duration-150"
           />
           <div class="mb-1.5 flex items-center justify-between">
@@ -82,32 +102,19 @@ function loginAsAdmin() {
           <input
             v-model="loginPass"
             type="password"
+            autocomplete="current-password"
             placeholder="••••••••"
             class="mb-5 w-full rounded-xl border border-border-input bg-white px-[15px] py-[13px] transition-shadow duration-150"
+            @keyup.enter="doLogin"
           />
           <button
             type="button"
-            class="w-full rounded-xl bg-brand-blue py-3.5 text-[15.5px] font-extrabold text-white shadow-[0_10px_24px_rgba(44,94,173,.28)] transition-transform duration-150 hover:scale-[1.015] active:scale-[0.98]"
+            class="w-full rounded-xl bg-brand-blue py-3.5 text-[15.5px] font-extrabold text-white shadow-[0_10px_24px_rgba(44,94,173,.28)] transition-transform duration-150 hover:scale-[1.015] active:scale-[0.98] disabled:opacity-60"
+            :disabled="submitting"
             @click="doLogin"
           >
-            Masuk
+            {{ submitting ? 'Memproses…' : 'Masuk' }}
           </button>
-
-          <div class="relative my-[18px] text-center text-[12.5px] font-bold text-text-faint-3">
-            <div class="absolute inset-x-0 top-1/2 -z-10 h-px bg-border-hairline" />
-            <span class="bg-cream px-3">masuk cepat sebagai (demo)</span>
-          </div>
-          <div class="grid grid-cols-3 gap-[9px]">
-            <button type="button" class="rounded-[11px] border border-border-input bg-white px-1.5 py-2.5 text-[13px] font-bold text-brand-navy transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0" @click="loginAsUser">
-              Pengguna
-            </button>
-            <button type="button" class="rounded-[11px] border border-border-input bg-white px-1.5 py-2.5 text-[13px] font-bold text-brand-navy transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0" @click="loginAsOwner">
-              Pemilik
-            </button>
-            <button type="button" class="rounded-[11px] border border-border-input bg-white px-1.5 py-2.5 text-[13px] font-bold text-brand-navy transition-transform duration-150 hover:-translate-y-0.5 active:translate-y-0" @click="loginAsAdmin">
-              Admin
-            </button>
-          </div>
         </div>
 
         <p class="animate-float-up mt-6 text-center font-semibold text-text-muted" style="animation-delay: .2s">

@@ -5,6 +5,7 @@ import App from './App.vue'
 import router from './router'
 import { vReveal } from './directives/reveal'
 import { useAccessibilityStore } from './stores/accessibility'
+import { useAuthStore } from './stores/auth'
 
 const app = createApp(App).use(createPinia()).use(router).directive('reveal', vReveal)
 
@@ -12,4 +13,8 @@ const app = createApp(App).use(createPinia()).use(router).directive('reveal', vR
 // halaman pertama dirender supaya tidak ada "kedip" ke ukuran default.
 useAccessibilityStore().init()
 
-app.mount('#app')
+// Pulihkan sesi dari token Sanctum yang tersimpan sebelum render pertama,
+// supaya guard router tahu peran user yang sebenarnya setelah reload.
+useAuthStore()
+  .restoreSession()
+  .finally(() => app.mount('#app'))

@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { ApiError } from '@/services/http'
 import AuthLayout from '@/components/auth/AuthLayout.vue'
 import RolePicker from '@/components/auth/RolePicker.vue'
 import logo from '@/assets/logo-nearby.png'
@@ -12,12 +13,34 @@ const auth = useAuthStore()
 const regName = ref('')
 const regEmail = ref('')
 const regPass = ref('')
+const submitting = ref(false)
+const errors = ref<string[]>([])
 
 const roleWord = computed(() => (auth.regRole === 'owner' ? 'Pemilik UMKM' : 'Pengguna'))
 
-function doRegister() {
-  auth.register(regName.value.trim(), auth.regRole)
-  router.push({ name: auth.regRole === 'owner' ? 'dashboard' : 'beranda' })
+async function doRegister() {
+  errors.value = []
+
+  if (!regName.value.trim() || !regEmail.value.trim() || !regPass.value) {
+    errors.value = ['Nama, email, dan password wajib diisi.']
+    return
+  }
+
+  submitting.value = true
+  try {
+    const account = await auth.register({
+      name: regName.value.trim(),
+      email: regEmail.value.trim(),
+      password: regPass.value,
+      role: auth.regRole,
+    })
+    regPass.value = ''
+    router.push(account?.role === 'owner' ? { name: 'dashboard' } : { name: 'beranda' })
+  } catch (e) {
+    errors.value = e instanceof ApiError ? e.messages : ['Pendaftaran gagal. Coba lagi.']
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -63,6 +86,17 @@ function doRegister() {
         <div class="animate-float-up" style="animation-delay: .12s">
           <RolePicker v-model="auth.regRole" />
 
+          <div
+            v-if="errors.length"
+            role="alert"
+            aria-live="assertive"
+            class="mb-4 rounded-xl border border-danger-border bg-danger-tint px-3.5 py-3 text-[12.5px] font-semibold text-danger-deep"
+          >
+            <ul class="space-y-1">
+              <li v-for="e in errors" :key="e">{{ e }}</li>
+            </ul>
+          </div>
+
           <label class="mb-1.5 block text-[13.5px] font-bold">Nama lengkap</label>
           <input v-model="regName" placeholder="Nama kamu" class="mb-[13px] w-full rounded-xl border border-border-input bg-white px-[15px] py-3 transition-shadow duration-150" />
           <label class="mb-1.5 block text-[13.5px] font-bold">Email</label>
@@ -72,14 +106,17 @@ function doRegister() {
             v-model="regPass"
             type="password"
             placeholder="Minimal 8 karakter"
+            autocomplete="new-password"
             class="mb-[18px] w-full rounded-xl border border-border-input bg-white px-[15px] py-3 transition-shadow duration-150"
+            @keyup.enter="doRegister"
           />
           <button
             type="button"
-            class="w-full rounded-xl bg-brand-blue py-3.5 text-[15.5px] font-extrabold text-white shadow-[0_10px_24px_rgba(44,94,173,.28)] transition-transform duration-150 hover:scale-[1.015] active:scale-[0.98]"
+            class="w-full rounded-xl bg-brand-blue py-3.5 text-[15.5px] font-extrabold text-white shadow-[0_10px_24px_rgba(44,94,173,.28)] transition-transform duration-150 hover:scale-[1.015] active:scale-[0.98] disabled:opacity-60"
+            :disabled="submitting"
             @click="doRegister"
           >
-            Daftar sebagai {{ roleWord }}
+            {{ submitting ? 'Memproses…' : `Daftar sebagai ${roleWord}` }}
           </button>
         </div>
 
