@@ -1,0 +1,29 @@
+# === Claude Code / AI assistant tooling ===
+.claude/
+.claude.json
+.claude.json.backup
+.mcp.json
+CLAUDE.local.md
+
+# Agen AI lain (jaga-jaga)
+.cursor/
+.aider*
+.windsurf/
+.codeium/
+.continue/
+
+# === OS / editor noise ===
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+*.swp
+
+# .vscode: abaikan setting lokal, tapi extensions.json tetap dilacak
+**/.vscode/*
+!**/.vscode/extensions.json
+
+# === Log umum ===
+*.log
+npm-debug.log*
+yarn-error.log*
